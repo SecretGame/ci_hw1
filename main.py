@@ -1,5 +1,7 @@
 import numpy as np
+from confution_matrix_graph import conf_mattrix
 from crosspad_data import getCross_data
+from for_cross import output_cross
 from sse import calculate_mse_loss, calculate_sse_loss
 from train import train
 from forward_propagation import forward_propagation
@@ -19,7 +21,7 @@ if __name__ == "__main__":
     # X , y = getdataFile()
     X , y = getCross_data()
     input_dim = X.shape[1]
-    hidden_dim = 6
+    hidden_dim = 2
     output_dim = y.shape[1]
     epochs = 10000
     learning_rate = 0.4
@@ -33,6 +35,7 @@ if __name__ == "__main__":
 
     
     validation_losses = []
+    accuracy_all = []
     for i in range(num_splits):
         print(f"----------------------------------------------{i}")
         start_idx = i * segment_length
@@ -48,21 +51,32 @@ if __name__ == "__main__":
         X_val, y_val = X[val_indices], y[val_indices]
     
         # Train on the training set
-        hidden_weights, output_weights, hidden_bias, output_bias = train(X, y, hidden_dim, output_dim, epochs, learning_rate, momentum_rate)
+        hidden_weights, output_weights, hidden_bias, output_bias = train(X_train, y_train, hidden_dim, output_dim, epochs, learning_rate, momentum_rate)
         
         #Validate model
         total_loss = 0
+        alltarget = []
+        alloutput = []
+        
         for j in range(len(X_val)):
             inputs = X_val[j]
             targets = y_val[j]
             hidden_outputs, output_outputs = forward_propagation(inputs, hidden_weights, output_weights, hidden_bias, output_bias)
-            print(f"Input: {inputs}, Predicted Output: {output_outputs}")
+            alltarget.append(targets)
+            cross_output = output_cross(output_outputs)
+            print(f"Input: {inputs}, Predicted Output: {cross_output}")
+            alloutput.append(cross_output)
             loss = calculate_mse_loss(targets,output_outputs)
             total_loss += loss
         avg_loss = total_loss / data_length
         print(f"Average Loss: {avg_loss}")
         validation_losses.append(avg_loss)
+        accuracy = conf_mattrix(alltarget,alloutput)
+        accuracy_all.append(accuracy)
+        print("accuracy: ", accuracy)
 
  # Calculate average loss over all validation sets
+    average_accuracy = np.mean(accuracy_all)
     average_validation_loss = np.mean(validation_losses)
+    print(f"Average Accuracy: {average_accuracy}")
     print(f"Average Validation Loss: {average_validation_loss}")
